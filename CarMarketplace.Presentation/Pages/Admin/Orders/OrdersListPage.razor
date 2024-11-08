@@ -1,0 +1,89 @@
+﻿@page "/orders"
+
+@using CarMarketplace.Application.DTOs
+@using CarMarketplace.Application.Interfaces.Pagination
+@using CarMarketplace.Presentation.Services.OrderServices
+
+@inject CurrentUserDto currentUser
+@inject IOrderService orderService
+@inject NavigationManager navigationManager
+
+<br />
+<MudGrid>
+    <MudItem xs="12">
+        <MudPaper>
+            <MudTable Items="@orders" Hover="true" Breakpoint="Breakpoint.Sm" RowsPerPage=PageSize AllowUnsorted =true Context="order" Dense=true FixedHeader=true Outlined="true">
+                <HeaderContent>
+                    <MudTh>Total Price</MudTh>
+                    <MudTh>Order Date</MudTh>
+                    <MudTh>Status</MudTh>
+                    <MudTh>Pay</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>@order.TotalPrice.ToString("C2")</MudTd>
+                    <MudTd>@order.OrderDate.ToString("dd.MM.yyyy")</MudTd>
+                    <MudTd>@order.Status</MudTd>
+                    <MudTd>
+                        @if (order.Status == Domain.Enums.Status.Created)
+                        {
+                            <MudButton Color="Color.Primary" OnClick="() => PayOrder(order)">
+                                Pay
+                            </MudButton>
+                            <MudButton Color="Color.Primary" OnClick="() => CanceledOrder(order)">
+                                Canceled
+                            </MudButton>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<OrderDto> orders = new();
+
+    private const int PageSize = 10;
+    public int TotalPages { get; set; }
+    public int CurrentPage { get; set; } = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadOrdersAsync();
+    }
+
+    private async Task LoadOrdersAsync()
+    {
+        var parameters = new PaginationParameter
+            {
+                PageNumber = CurrentPage,
+                PageSize = PageSize
+            };
+
+        var result = await orderService.GetOrders(parameters, currentUser.Id);
+
+        if (result == null)
+        {
+            orders = new List<OrderDto>();
+        }
+        else
+        {
+            var newList = result.Items.ToList();
+            TotalPages = (int)Math.Ceiling((double)result.TotalItems / PageSize);
+            orders = newList;
+            StateHasChanged();
+        }
+    }
+
+    private async Task PayOrder(OrderDto order)
+    {
+        order.Status = Domain.Enums.Status.Paid;
+        await orderService.OrderEdit(order);
+    }
+
+    private async Task CanceledOrder(OrderDto order)
+    {
+        order.Status = Domain.Enums.Status.Canceled;
+        await orderService.OrderEdit(order);
+    }
+}

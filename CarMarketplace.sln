@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMarketplace.Domain", "CarMarketplace.Domain\CarMarketplace.Domain.csproj", "{E49BB0A5-9494-446E-80EA-334A7892EF8A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMarketplace.Application", "CarMarketplace.Application\CarMarketplace.Application.csproj", "{5A4D948E-2196-4DAA-80BB-6F44E5B34F24}"
+	ProjectSection(ProjectDependencies) = postProject
+		{E49BB0A5-9494-446E-80EA-334A7892EF8A} = {E49BB0A5-9494-446E-80EA-334A7892EF8A}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMarketplace.Ifrastructure", "CarMarketplace.Ifrastructure\CarMarketplace.Ifrastructure.csproj", "{0E6CB6E2-2790-4F19-89C9-7EC7C8717153}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMarketplace.API", "CarMarketplace.API\CarMarketplace.API.csproj", "{0E93BD99-38FA-48D8-8BB5-218D62688B58}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0E6CB6E2-2790-4F19-89C9-7EC7C8717153} = {0E6CB6E2-2790-4F19-89C9-7EC7C8717153}
+		{3797462E-BF99-4749-B1F9-F244F05CDE51} = {3797462E-BF99-4749-B1F9-F244F05CDE51}
+		{5A4D948E-2196-4DAA-80BB-6F44E5B34F24} = {5A4D948E-2196-4DAA-80BB-6F44E5B34F24}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CarMarketplace.Presentation", "CarMarketplace.Presentation\CarMarketplace.Presentation.csproj", "{3797462E-BF99-4749-B1F9-F244F05CDE51}"
+	ProjectSection(ProjectDependencies) = postProject
+		{0E6CB6E2-2790-4F19-89C9-7EC7C8717153} = {0E6CB6E2-2790-4F19-89C9-7EC7C8717153}
+		{5A4D948E-2196-4DAA-80BB-6F44E5B34F24} = {5A4D948E-2196-4DAA-80BB-6F44E5B34F24}
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E49BB0A5-9494-446E-80EA-334A7892EF8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E49BB0A5-9494-446E-80EA-334A7892EF8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E49BB0A5-9494-446E-80EA-334A7892EF8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E49BB0A5-9494-446E-80EA-334A7892EF8A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5A4D948E-2196-4DAA-80BB-6F44E5B34F24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5A4D948E-2196-4DAA-80BB-6F44E5B34F24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5A4D948E-2196-4DAA-80BB-6F44E5B34F24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5A4D948E-2196-4DAA-80BB-6F44E5B34F24}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E6CB6E2-2790-4F19-89C9-7EC7C8717153}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E6CB6E2-2790-4F19-89C9-7EC7C8717153}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E6CB6E2-2790-4F19-89C9-7EC7C8717153}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E6CB6E2-2790-4F19-89C9-7EC7C8717153}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E93BD99-38FA-48D8-8BB5-218D62688B58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E93BD99-38FA-48D8-8BB5-218D62688B58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E93BD99-38FA-48D8-8BB5-218D62688B58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E93BD99-38FA-48D8-8BB5-218D62688B58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3797462E-BF99-4749-B1F9-F244F05CDE51}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3797462E-BF99-4749-B1F9-F244F05CDE51}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3797462E-BF99-4749-B1F9-F244F05CDE51}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3797462E-BF99-4749-B1F9-F244F05CDE51}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B43446AC-4CED-4A8B-B55D-8C5E8E08DD6C}
+	EndGlobalSection
+EndGlobal

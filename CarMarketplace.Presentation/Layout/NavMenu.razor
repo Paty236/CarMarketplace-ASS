@@ -1,0 +1,53 @@
+﻿@using CarMarketplace.Application.DTOs
+@using CarMarketplace.Presentation.Services.CartServices
+@using CarMarketplace.Presentation.Services.UserAccountServices
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@using MudBlazor
+
+@inject ICartService cartService
+@inject CurrentUserDto currentUser
+@inject CurrentUserService currentUserService
+
+<MudNavMenu Bordered="true">
+    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+    <MudDivider />
+
+    <AuthorizeView>
+        <Authorized>
+            <MudNavLink Href="/orders" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.KeyboardCommandKey">My Orders</MudNavLink>
+            <MudDivider />
+
+            <MudNavLink Href="/cart" Icon="@Icons.Filled.ShoppingCart">My Cart</MudNavLink>
+            <MudDivider />
+
+            @if (currentUser.UserRole == "Admin")
+            {
+                <MudNavLink Href="/cars" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.WbAuto">Cars</MudNavLink>
+                <MudDivider />
+
+                <MudNavLink Href="/users" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PersonAdd">Users</MudNavLink>
+                <MudDivider />
+            }
+
+            <MudNavLink Href="/my-profile" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Person">My profile</MudNavLink>
+            <MudDivider />
+        </Authorized>
+    </AuthorizeView>
+</MudNavMenu>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await currentUserService.InitializeAsync();
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+}

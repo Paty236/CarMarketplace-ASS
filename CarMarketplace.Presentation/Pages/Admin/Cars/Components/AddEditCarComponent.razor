@@ -1,0 +1,185 @@
+@using CarMarketplace.Application.DTOs
+@using CarMarketplace.Domain.Enums
+@using CarMarketplace.Presentation.Services.CarServices
+
+@inject ICarService carService
+@inject CurrentUserDto currentUser
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="@Car" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <MudSelect T="CarMake" Label="Make" @bind-Value="Car.Make" Variant="Variant.Text">
+                @foreach (var make in Enum.GetValues(typeof(CarMake)).Cast<CarMake>())
+                {
+                    <MudSelectItem Value="@make">@make</MudSelectItem>
+                }
+            </MudSelect>
+            <MudTextField Label="Model" @bind-Value="Car.Model" For="@(() => Car.Model)" Variant="Variant.Text" />
+            <MudTextField Label="Year" @bind-Value="Car.Year" For="@(() => Car.Year)" Variant="Variant.Text" />
+            <MudTextField Label="Price" @bind-Value="Car.Price" For="@(() => Car.Price)" Variant="Variant.Text" />
+            <MudSelect T="CarCondition" Label="Condition" @bind-Value="Car.Condition" Variant="Variant.Text">
+                @foreach (var condition in Enum.GetValues(typeof(CarCondition)).Cast<CarCondition>())
+                {
+                    <MudSelectItem Value="@condition">@condition</MudSelectItem>
+                }
+            </MudSelect>
+            <div style="display: flex; align-items: center; margin-top: 16px;">
+                <label style="margin-right: 8px;">Color</label>
+                <input type="color" @bind="Car.Color" class="mud-input" style="margin-left: 8px;" />
+            </div>
+            <MudTextField Label="Mileage" @bind-Value="Car.Mileage" For="@(() => Car.Mileage)" Variant="Variant.Text" />
+            <br />
+            <MudItem xs="12">
+                <MudButton HtmlTag="label"
+                           Variant="Variant.Outlined"
+                           Color="Color.Success"
+                           StartIcon="@Icons.Material.Filled.PhotoCamera"
+                           for="fileInput">
+                    Upload images
+                </MudButton>
+                <InputFile id="fileInput" OnChange="HandleFileSelected" hidden multiple />
+            </MudItem>
+            <br />
+            @if (UploadedImages != null && UploadedImages.Count > 0)
+            {
+                <div>
+                    <ul>
+                        @foreach (var image in UploadedImages)
+                        {
+                            <li>@image.Name</li>
+                        }
+                    </ul>
+                </div>
+            }
+            @if (CarId.HasValue && Car.Images != null && Car.Images.Count > 0)
+            {
+                <div>
+                    <h4>Images:</h4>
+                    <ul>
+                        @foreach (var image in Car.Images)
+                        {
+                            <li>
+                                <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(image)}")"
+                                     alt="Car Image"
+                                     style="width: 100px; height: auto; margin-right: 8px;" />
+                            </li>
+                        }
+                    </ul>
+                </div>
+            }
+            <br />
+            <MudGrid Justify="Justify.Center">
+                <MudItem>
+                    <MudButton OnClick="@Cancel" Color="Color.Dark" Variant="Variant.Filled" Size="Size.Large">Cancel</MudButton>
+                    <MudButton StartIcon="@Icons.Filled.Save" Color="Color.Primary" Size="Size.Large" Variant="Variant.Filled" ButtonType="ButtonType.Submit">Save</MudButton>
+                    @if (CarId.HasValue)
+                    {
+                        <MudButton OnClick="@Delete" Color="Color.Error" Variant="Variant.Filled" Size="Size.Large" Style="margin-left: 4px">Delete</MudButton>
+                    }
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    public CarDto Car { get; set; } = new CarDto();
+    private List<IBrowserFile> UploadedImages { get; set; } = new List<IBrowserFile>();
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public Guid? CarId { get; set; }
+
+    [Parameter]
+    public Func<Task> Callback { get; set; }
+
+    void Cancel() => MudDialog.Cancel();
+
+    protected async override Task OnInitializedAsync()
+    {
+        if (CarId.HasValue)
+        {
+            Car = await carService.GetCarById(CarId.Value);
+        }
+        StateHasChanged();
+    }
+
+    private async Task Save()
+    {
+        bool isSuccessfull = false;
+
+        if (!CarId.HasValue)
+        {
+            var create = new CarDto
+                {
+                    Make = Car.Make,
+                    Model = Car.Model,
+                    Year = Car.Year,
+                    Price = Car.Price,
+                    Description = Car.Description,
+                    Condition = Car.Condition,
+                    Color = Car.Color,
+                    Mileage = Car.Mileage,
+                    SellerId = currentUser.Id,
+                    Images = await GetImageData(UploadedImages)
+                };
+
+            var response = await carService.CarCreate(create);
+            if (response.Success) isSuccessfull = true;
+        }
+        else
+        {
+            var toEdit = new CarDto
+                {
+                    Id = Car.Id,
+                    Make = Car.Make,
+                    Model = Car.Model,
+                    Year = Car.Year,
+                    Price = Car.Price,
+                    Description = Car.Description,
+                    Condition = Car.Condition,
+                    Color = Car.Color,
+                    Mileage = Car.Mileage,
+                    SellerId = currentUser.Id,
+                    Images = await GetImageData(UploadedImages)
+                };
+
+            var result = await carService.CarEdit(toEdit);
+            if (result != null) isSuccessfull = true;
+        }
+
+        if (isSuccessfull) Callback?.Invoke();
+
+        MudDialog.Close();
+    }
+
+    private void HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        UploadedImages.Clear();
+        UploadedImages.AddRange(e.GetMultipleFiles());
+    }
+
+    private async Task<List<byte[]>> GetImageData(List<IBrowserFile> files)
+    {
+        var imageData = new List<byte[]>();
+        foreach (var file in files)
+        {
+            using (var stream = new MemoryStream())
+            {
+                await file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024).CopyToAsync(stream);
+                imageData.Add(stream.ToArray());
+            }
+        }
+        return imageData;
+    }
+
+    private async Task Delete()
+    {
+        await carService.CarDelete(CarId.Value);
+        Callback?.Invoke();
+        MudDialog.Close();
+    }
+}

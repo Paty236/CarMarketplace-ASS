@@ -1,0 +1,123 @@
+﻿@page "/my-profile"
+
+@using Application.DTOs
+@using CarMarketplace.Presentation.Services.UserAccountServices
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject CurrentUserDto currentUser
+@inject CurrentUserService currentUserService
+@inject AuthenticationStateProvider authenticationStateProvider
+@inject IUserAccountService accountService
+
+<AuthorizeView>
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudPaper Elevation="4" Style="padding: 24px; margin: 16px;">
+                <div class="flex min-h-screen relative items-center justify-center w-full">
+                    <div class="rounded-xl overflow-hidden relative text-center p-4 group items-center flex flex-col max-w-sm hover:shadow-2xl transition-all duration-500 shadow-xl">
+                        <div class="text-gray-500 group-hover:scale-105 transition-all">
+                            <svg stroke="currentColor" stroke-width="1.5" width="48" height="48" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" stroke-linejoin="round" stroke-linecap="round"></path>
+                            </svg>
+                        </div>
+                        <div class="group-hover:pb-10 transition-all duration-500 delay-200">
+                            <h1 class="font-semibold text-gray-700">@user.FirstName @user.LastName</h1>
+                            <h5 class="text-gray-500 text-sm">@user.Email</h5>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center p-3 w-72 h-28 bg-white rounded-md shadow-lg">
+                    <section class="block border-l border-gray-300 m-3">
+                        <div class="pl-3">
+                            <h5 class="bg-clip-text text-transparent bg-gradient-to-l from-[#005BC4] to-[#27272A] text-lg font-bold">
+                                @user.Role
+                            </h5>
+                        </div>
+                    </section>
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="6">
+            <MudPaper Elevation="4" Style="padding: 24px; margin: 16px;">
+                <MudText Typo="Typo.h5" Style="margin-bottom: 16px;">Edit My Profile</MudText>
+                @if (isLoadingType)
+                {
+                    <MudProgressCircular Color="Color.Primary" Style="height:100px; width:100px; display:block; margin:auto;" Indeterminate="true" />
+                }
+                else
+                {
+                    <EditForm Model="user" OnValidSubmit="Save" Context="editFormContext">
+                        <DataAnnotationsValidator />
+                        <MudGrid>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="user.FirstName" For="@(() => user.FirstName)" Label="First Name" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="user.LastName" For="@(() => user.LastName)" Label="Last Name" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="user.Email" For="@(() => user.Email)" Label="Email" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudTextField @bind-Value="user.PhoneNumber" For="@(() => user.PhoneNumber)" Label="Phone Number" Variant="Variant.Outlined" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                @if (currentUser.UserRole == "Admin")
+                                {
+                                    <MudSelect T="string" MultiSelection="false" @bind-Value="user.Role" Label="Role" Variant="Variant.Outlined">
+                                        @foreach (var role in roles)
+                                        {
+                                            <MudSelectItem Value="@role">@role</MudSelectItem>
+                                        }
+                                    </MudSelect>
+                                }
+                                else
+                                {
+                                    <MudTextField @bind-Value="user.Role" For="@(() => user.Role)" Label="Role" ReadOnly Variant="Variant.Outlined" />
+                                }
+                            </MudItem>
+                            <MudGrid Justify="Justify.FlexEnd">
+                                <MudItem>
+                                    <MudButton OnClick="Save" ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Success" Style="margin-right: 8px;">Save</MudButton>
+                                </MudItem>
+                            </MudGrid>
+                        </MudGrid>
+                    </EditForm>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+</AuthorizeView>
+
+@code {
+    public bool isLoadingType = true;
+    private UserDto user = new UserDto();
+    private List<string> roles = new List<string>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        await authenticationStateProvider.GetAuthenticationStateAsync();
+        var currentUser = await currentUserService.GetAsync();
+        user = await accountService.GetUserById(currentUser.Id);
+        roles = await accountService.GetRoles();
+        isLoadingType = false;
+        StateHasChanged();
+    }
+
+    private async Task Save()
+    {
+        var userToEdit = new UserDto
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                PhoneNumber = user.PhoneNumber,
+                Role = user.Role
+            };
+
+        var result = await accountService.UserEdit(userToEdit);
+        await OnInitializedAsync();
+    }
+}

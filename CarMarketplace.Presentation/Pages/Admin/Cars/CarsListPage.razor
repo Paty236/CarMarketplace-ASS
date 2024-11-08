@@ -1,0 +1,104 @@
+﻿@page "/cars"
+
+@using Application.DTOs
+@using CarMarketplace.Application.Interfaces.Pagination
+@using CarMarketplace.Presentation.Pages.Admin.Cars.Components
+@using CarMarketplace.Presentation.Services.CarServices
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject ICarService carService
+@inject IDialogService dialogsService
+
+<AuthorizeView>
+    @if (isLoadingType)
+    {
+        <MudProgressCircular Color="Color.Primary" Style="height:100px; width:100px; display:block; margin:auto;" Indeterminate="true" />
+    }
+    else
+    {
+        <MudStack>
+            <MudToolBar DisableGutters="true">
+                <MudText Typo="Typo.h4">Cars</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" OnClick="@(() => AddEditCar())">
+                    Add New Car
+                </MudButton>
+            </MudToolBar>
+            <MudTable Items=@products Hover="true" Breakpoint="Breakpoint.Sm" AllowUnsorted=true
+                      Context="product" Dense=true FixedHeader=true RowsPerPage=PageSize Outlined="true">
+                <HeaderContent>
+                    <MudTh>Details</MudTh>
+                    <MudTh>Make</MudTh>
+                    <MudTh>Model</MudTh>
+                    <MudTh>Condition</MudTh>
+                    <MudTh>Year</MudTh>
+                    <MudTh>Price</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudFab Size="Size.Small" Color="Color.Primary" StartIcon="@Icons.Filled.Info" OnClick="@(() => AddEditCar(product.Id))" />
+                    </MudTd>
+                    <MudTd DataLabel="Make">@product.Make</MudTd>
+                    <MudTd DataLabel="Model">@product.Model</MudTd>
+                    <MudTd DataLabel="Condition">@product.Condition</MudTd>
+                    <MudTd DataLabel="Year">@product.Year</MudTd>
+                    <MudTd DataLabel="Price">@product.Price.ToString("C2")</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+        </MudStack>
+    }
+</AuthorizeView>
+
+@code {
+    public bool isLoadingType = true;
+    private List<CarDto>? products;
+
+    private const int PageSize = 10;
+    public int TotalPages { get; set; }
+    public int CurrentPage { get; set; } = 1;
+
+    protected async override Task OnInitializedAsync()
+    {
+        var parameters = new PaginationParameter
+            {
+                PageNumber = CurrentPage,
+                PageSize = PageSize
+            };
+
+        var result = await carService.GetCars(parameters);
+
+        if (result == null)
+        {
+            products = new List<CarDto>();
+        }
+        else
+        {
+            var newList = result.Items.ToList();
+            TotalPages = (int)Math.Ceiling((double)result.TotalItems / PageSize);
+            products = newList;
+            isLoadingType = false;
+            StateHasChanged();
+        }
+    }
+
+    private void AddEditCar(Guid? carId = null)
+    {
+        var dialog = default(IDialogReference);
+        var parameters = new DialogParameters();
+        var callback = async () => { await OnInitializedAsync(); };
+
+        var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MudBlazor.MaxWidth.Large
+            };
+
+        parameters.Add("CarId", carId);
+        parameters.Add("callback", callback);
+
+        dialog = dialogsService.Show<AddEditCarComponent>("Car details", parameters, options);
+    }
+}

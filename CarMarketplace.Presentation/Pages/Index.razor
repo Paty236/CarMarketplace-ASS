@@ -1,0 +1,207 @@
+﻿@page "/"
+
+@using Application.DTOs
+@using CarMarketplace.Application.Interfaces.Pagination
+@using CarMarketplace.Presentation.Services.CarServices
+@using System.Collections.Generic
+@using CarMarketplace.Presentation.Services.CartServices
+@using CarMarketplace.Presentation.Services.UserAccountServices
+
+@inject ISnackbar snackbar
+@inject ICarService carService
+@inject ICartService cartService
+@inject CurrentUserDto currentUser
+@inject NavigationManager navigationManager
+@inject CurrentUserService currentUserService
+
+<br />
+<div class="car-list">
+    @if (isLoading)
+    {
+        <p>Loading cars...</p>
+    }
+    else
+    {
+        @foreach (var car in cars)
+        {
+            <div class="card" @onclick="() => AddToCart(car)">
+                <div class="image">
+                    @if (car.Images != null && car.Images.Count > 0)
+                    {
+                        <img src="@($"data:image/jpeg;base64,{Convert.ToBase64String(car.Images.First())}")"
+                             alt="@car.Description"
+                             style="width: 100%; height: auto;" />
+                    }
+                    else
+                    {
+                        <span class="text">@car.Description</span>
+                    }
+                </div>
+                <span class="title">@car.Make @car.Model @car.Year</span>
+                <span class="title">@car.Mileage  km</span>
+                <span class="price">@string.Format("${0:0}", car.Price)</span>
+            </div>
+        }
+    }
+</div>
+
+<div style="text-align: center; margin-top: 1rem;">
+    <MudPagination Variant="Variant.Outlined"
+                   Count="TotalPages"
+                   PageSize="@PageSize"
+                   CurrentPage="@CurrentPage"
+                   OnPageChanged="OnPageChanged" />
+</div>
+
+<style>
+    .car-list {
+        display: flex; 
+        flex-wrap: wrap; 
+        justify-content: center; 
+        gap: 1em;
+        margin-top: 1rem;
+    }
+
+    .card {
+        position: relative;
+        width: 335px;
+        height: 320px;
+        box-shadow: 0px 1px 15px rgba(0,0,0,0.2);
+        cursor: pointer;
+        transition: all 120ms;
+        display: flex;
+        flex-direction: column; 
+        align-items: center;
+        justify-content: center;
+        background: #fff;
+        padding: 1em;
+    }
+
+        .card::after {
+            content: "Add to Cart";
+            padding-top: 0.5em;
+            position: absolute;
+            bottom: -60px;
+            background: #00AC7C;
+            color: #fff;
+            height: 3em;
+            width: 100%;
+            transition: all 80ms;
+            font-weight: 600;
+            text-transform: uppercase;
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card .title {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 1.2em;
+            margin-top: 1em;
+            font-weight: 600;
+            color: #000;
+            text-align: center;
+        }
+
+        .card .price {
+            font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif;
+            font-size: 1.2em;
+            margin-top: 0.5em;
+            color: #000;
+        }
+
+        .card:hover::after {
+            bottom: 0;
+            opacity: 1;
+        }
+
+        .card:active {
+            transform: scale(0.98);
+        }
+
+            .card:active::after {
+                content: "Added !";
+                height: 3.5em;
+            }
+
+    .text {
+        max-width: 80px;
+        text-align: center;
+    }
+
+    .image {
+        background: rgb(241, 241, 241);
+        width: 90%;
+        height: 60%;
+        display: grid;
+        place-items: center;
+        margin-bottom: 1em;
+    }
+</style>
+
+
+@code {
+    private bool isLoading = true;
+    private List<CarDto> cars = new List<CarDto>();
+
+    public int PageSize { get; set; } = 10;
+    public int TotalPages { get; set; }
+    public int CurrentPage { get; set; } = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCars();
+    }
+
+    private async Task LoadCars()
+    {
+        isLoading = true;
+        var parameters = new PaginationParameter
+            {
+                PageNumber = CurrentPage,
+                PageSize = PageSize
+            };
+
+        var result = await carService.GetCars(parameters);
+
+        if (result == null)
+        {
+            cars = new List<CarDto>();
+        }
+        else
+        {
+            cars = result.Items.ToList();
+            TotalPages = (int)Math.Ceiling((double)result.TotalItems / PageSize);
+        }
+
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async void AddToCart(CarDto car)
+    {
+        await currentUserService.InitializeAsync();
+
+        if (!currentUser.IsAuthenticated)
+        {
+            snackbar.Add("You need to log in to add items to your cart. Please log in.", Severity.Error);
+            navigationManager.NavigateTo("/login");
+        }
+        else
+        {
+            var product = new ProductDetailsDto
+            {
+                Name = car.Make.ToString(),
+                Description = car.Description,
+                Category = Domain.Enums.ProductCategory.Cars,
+                Quantity = 1,
+                UnitPrice = car.Price,
+                Details = car.Condition.ToString()
+            };
+            if (car.Images.FirstOrDefault() != null) product.Image = car.Images.FirstOrDefault();
+            await cartService.AddItemAsync(product, currentUser.Id);
+            await LoadCars();
+        }
+    }
+}

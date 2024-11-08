@@ -1,0 +1,133 @@
+﻿@page "/register"
+
+@using CarMarketplace.Application.DTOs
+@using CarMarketplace.Presentation.Services.UserAccountServices
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject ISnackbar snackbar
+@inject NavigationManager NavManager
+@inject IUserAccountService AuthenticationService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<br />
+<div class="auth-page">
+    <div class="container page">
+        <div class="row">
+            <div class="col-md-6 offset-md-3 col-xs-12">
+                <h1 class="mb-3 text-xs-center">Sign up</h1>
+                <EditForm Model="@registerCommand" OnValidSubmit="ExecuteRegister">
+                    <DataAnnotationsValidator />
+                    <fieldset class="mt-3 form-group">
+                        <div>
+                            <MudTextField class="form-control form-control-lg" InputType="InputType.Text"
+                                @bind-Value="registerCommand.FirstName" Label="FirstName"
+                                For="@(() => registerCommand.FirstName)"
+                                Variant="Variant.Outlined"></MudTextField>
+                        </div>
+                    </fieldset>
+                    <fieldset class="mt-3 form-group">
+                        <div>
+                            <MudTextField class="form-control form-control-lg" InputType="InputType.Text"
+                                @bind-Value="registerCommand.LastName" Label="LastName"
+                                For="@(() => registerCommand.LastName)"
+                                Variant="Variant.Outlined"></MudTextField>
+                        </div>
+                    </fieldset>
+                    <fieldset class="mt-3 form-group">
+                        <div>
+                            <MudTextField class="form-control form-control-lg" InputType="InputType.Text"
+                                          @bind-Value="registerCommand.PhoneNumber" Label="Phone Number"
+                                          For="@(() => registerCommand.PhoneNumber)"
+                                          Variant="Variant.Outlined"></MudTextField>
+                        </div>
+                    </fieldset>
+                    <fieldset class="mt-3 form-group">
+                        <div>
+                            <MudTextField class="form-control form-control-lg" InputType="InputType.Email"
+                                @bind-Value="registerCommand.Email" Label="Email"
+                                For="@(() => registerCommand.Email)"
+                                Variant="Variant.Outlined"></MudTextField>
+                        </div>
+                    </fieldset>
+                    <fieldset class="mt-3 form-group">
+                        <div>
+                            <MudTextField class="form-control form-control-lg" InputType="@TxtType"
+                                @bind-Value="registerCommand.Password" Label="Password"
+                                For="@(() => registerCommand.Password)"
+                                Variant="Variant.Outlined"></MudTextField>
+                        </div>
+                    </fieldset>
+                    <fieldset class="mt-3 form-group">
+                        <div>
+                            <MudTextField class="form-control form-control-lg" InputType="@TxtType"
+                                          @bind-Value="registerCommand.ConfirmPassword" Label="ConfirmPassword"
+                                          For="@(() => registerCommand.ConfirmPassword)"
+                                          Variant="Variant.Outlined"></MudTextField>
+                        </div>
+                        <span>
+                            <MudCheckBox @bind-Checked="@showPassword" Color="Color.Primary" @onclick="ShowPassword" />
+                            Show Passwords
+                        </span>
+                    </fieldset>
+                    <MudButton class="mt-3 btn btn-lg btn-primary pull-xs-right"
+                        Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.AppRegistration"
+                        Color="Color.Primary" ButtonType="MudBlazor.ButtonType.Submit">
+                            Register
+                    </MudButton>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterDto registerCommand = new RegisterDto();
+    public InputType TxtType = InputType.Password;
+    public bool showPassword { get; set; } = false;
+
+    public void ShowPassword()
+    {
+        if (showPassword == false)
+        {
+            TxtType = InputType.Text;
+        }
+        else
+        {
+            TxtType = InputType.Password;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authstate = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authstate.User;
+        if (user.Identity.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
+    }
+
+    private async Task ExecuteRegister()
+    {
+        if (registerCommand.Password != registerCommand.ConfirmPassword) 
+        {
+            snackbar.Add("Passwords do not match", Severity.Error);
+            return;
+        }
+
+        var user = new UserDto
+        {
+            FirstName = registerCommand.FirstName,
+            LastName = registerCommand.LastName,
+            Email = registerCommand.Email,
+            PhoneNumber = registerCommand.PhoneNumber,
+            Role = registerCommand.Role
+        };
+
+        var result = await AuthenticationService.UserCreate(user);
+        if (result is not null)
+        {
+            NavManager.NavigateTo("/login");
+        }
+    }
+}

@@ -1,0 +1,104 @@
+﻿@page "/users"
+
+@using Application.DTOs
+@using CarMarketplace.Application.Interfaces.Pagination
+@using CarMarketplace.Presentation.Pages.Admin.Users.Components
+@using CarMarketplace.Presentation.Services.UserAccountServices
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject IUserAccountService accountService
+@inject IDialogService dialogsService
+
+<AuthorizeView>
+    @if (isLoadingType)
+    {
+        <MudProgressCircular Color="Color.Primary" Style="height:100px; width:100px; display:block; margin:auto;" Indeterminate="true" />
+    }
+    else
+    {
+        <MudStack>
+            <MudToolBar DisableGutters="true">
+                <MudText Typo="Typo.h4">Users</MudText>
+                <MudSpacer />
+                <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.PersonAdd"
+                           Color="Color.Primary" Size="Size.Large" DisableElevation="true" OnClick="@(() => AddEditUser())">
+                    Create New User
+                </MudButton>
+            </MudToolBar>
+
+            <MudTable Items=@users Hover="true" Breakpoint="Breakpoint.Sm" AllowUnsorted=true
+                      Context="user" Dense=true FixedHeader=true RowsPerPage=PageSize SortLabel="Sort By" Outlined="true">
+                <HeaderContent>
+                    <MudTh>Profile details</MudTh>
+                    <MudTh>FirstName</MudTh>
+                    <MudTh>LastName</MudTh>
+                    <MudTh>Email</MudTh>
+                    <MudTh>Role</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd>
+                        <MudFab Size="Size.Small" Color="Color.Primary" StartIcon="@Icons.Filled.Info" OnClick="@(() => AddEditUser(user.Id))" />
+                    </MudTd>
+                    <MudTd DataLabel="FirstName">@user.FirstName</MudTd>
+                    <MudTd DataLabel="LastName">@user.LastName</MudTd>
+                    <MudTd DataLabel="Email">@user.Email</MudTd>
+                    <MudTd DataLabel="Role">@user.Role</MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+            </MudTable>
+        </MudStack>
+    }
+</AuthorizeView>
+
+@code {
+    public bool isLoadingType = true;
+    private List<UserDto>? users;
+
+    private const int PageSize = 10;
+    public int TotalPages { get; set; }
+    public int CurrentPage { get; set; } = 1;
+
+    protected async override Task OnInitializedAsync()
+    {
+        var parameters = new PaginationParameter
+            {
+                PageNumber = CurrentPage,
+                PageSize = PageSize
+            };
+
+        var result = await accountService.GetUsers(parameters);
+
+        if (result == null)
+        {
+            users = new List<UserDto>();
+        }
+        else
+        {
+            var newList = result.Items.ToList();
+            TotalPages = (int)Math.Ceiling((double)result.TotalItems / PageSize);
+            users = newList;
+            isLoadingType = false;
+            StateHasChanged();
+        }
+    }
+
+    private void AddEditUser(Guid? userId = null)
+    {
+        var dialog = default(IDialogReference);
+        var parameters = new DialogParameters();
+        var callback = async () => { await OnInitializedAsync(); };
+
+        var options = new DialogOptions
+            {
+                CloseOnEscapeKey = true,
+                MaxWidth = MudBlazor.MaxWidth.Large
+            };
+
+        parameters.Add("UserId", userId);
+        parameters.Add("callback", callback);
+
+        dialog = dialogsService.Show<AddEditUserComponent>("User Profile details", parameters, options);
+    }
+}

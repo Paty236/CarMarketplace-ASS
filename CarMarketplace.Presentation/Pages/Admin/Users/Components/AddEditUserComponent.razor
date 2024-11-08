@@ -1,0 +1,105 @@
+@using CarMarketplace.Application.DTOs
+@using CarMarketplace.Presentation.Services.UserAccountServices
+@using System.ComponentModel.DataAnnotations
+@inject IUserAccountService accountService
+
+<MudDialog>
+    <DialogContent>
+        <EditForm Model="@User" OnValidSubmit="Save">
+            <DataAnnotationsValidator />
+            <MudTextField Label="First Name" @bind-Value="User.FirstName" For="@(() => User.FirstName)" Variant="Variant.Text" />
+            <MudTextField Label="Last Name" @bind-Value="User.LastName" For="@(() => User.LastName)" Variant="Variant.Text" />
+            <MudTextField Label="Email" @bind-Value="User.Email" For="@(() => User.Email)" Variant="Variant.Text" InputType="InputType.Email" />
+            <MudTextField Label="Phone Number" @bind-Value="User.PhoneNumber" For="@(() => User.PhoneNumber)" Variant="Variant.Text" />
+            <MudSelect @bind-Value="User.Role" Label="Role" Variant="Variant.Text">
+                @foreach (var role in roles)
+                {
+                    <MudSelectItem T="string" Value="@role">@role</MudSelectItem>
+                }
+            </MudSelect>
+            <br />
+            <MudGrid Justify="Justify.Center">
+                <MudItem>
+                    <MudButton OnClick="@Cancel" Color="Color.Dark" Variant="Variant.Filled" Size="Size.Large">Cancel</MudButton>
+                    <MudButton StartIcon="@Icons.Filled.Save" Color="Color.Primary" Size="Size.Large" Variant="Variant.Filled" ButtonType="ButtonType.Submit">Save</MudButton>
+                    @if (UserId.HasValue) 
+                    {
+                        <MudButton OnClick="@Delete" Color="Color.Error" Variant="Variant.Filled" Size="Size.Large" Style="margin-left: 4px">Delete</MudButton>
+                    }
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    </DialogContent>
+</MudDialog>
+
+@code {
+    UserDto User = new UserDto();
+    private List<string> roles = new List<string>();
+
+    [CascadingParameter]
+    MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public Guid? UserId { get; set; }
+
+    [Parameter]
+    public Func<Task> Callback { get; set; }
+
+    void Cancel() => MudDialog.Cancel();
+
+    protected async override Task OnInitializedAsync()
+    {
+        if (UserId.HasValue)
+        {
+            User = await accountService.GetUserById(UserId.Value);
+        }
+        roles = await accountService.GetRoles();
+        StateHasChanged();
+    }
+
+    private async Task Save()
+    {
+        bool isSuccessfull = false;
+
+        if (!UserId.HasValue)
+        {
+            var createUser = new UserDto
+                {
+                    FirstName = User.FirstName,
+                    LastName = User.LastName,
+                    Email = User.Email,
+                    PhoneNumber = User.PhoneNumber,
+                    Role = User.Role
+                };
+
+            var userResponse = await accountService.UserCreate(createUser);
+            if (userResponse.Success) isSuccessfull = true;
+        }
+        else
+        {
+            var userToEdit = new UserDto
+                {
+                    Id = User.Id,
+                    FirstName = User.FirstName,
+                    LastName = User.LastName,
+                    Email = User.Email,
+                    PhoneNumber = User.PhoneNumber,
+                    Role = User.Role
+                };
+
+            var result = await accountService.UserEdit(userToEdit);
+            if (result != null) isSuccessfull = true;
+        }
+
+        if (isSuccessfull) Callback?.Invoke();
+
+        MudDialog.Close();
+    }
+
+    private async Task Delete()
+    {
+        await accountService.UserDelete(UserId.Value);
+        Callback?.Invoke();
+        MudDialog.Close();
+    }
+}

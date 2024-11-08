@@ -1,0 +1,92 @@
+﻿@page "/cart"
+
+@using Application.DTOs
+@using CarMarketplace.Presentation.Pages.Admin.Cart.Components
+@using CarMarketplace.Presentation.Services.CartServices
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject NavigationManager navigationManager
+@inject ICartService cartService
+@inject CurrentUserDto currentUser
+
+<AuthorizeView>
+    @if (isLoadingType)
+    {
+        <MudProgressCircular Color="Color.Primary" Style="height:100px; width:100px; display:block; margin:auto;" Indeterminate="true" />
+    }
+    else
+    {
+        <MudToolBar DisableGutters="true">
+            <MudText Typo="Typo.h4">Shopping Cart</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Outlined" StartIcon=@Icons.Filled.RemoveShoppingCart
+                Disabled=@(_cartItems?.Any() is false) Size=@Size.Large
+                Color="Color.Secondary" OnClick=@EmptyCartAsync>
+                Empty Cart
+            </MudButton>
+        </MudToolBar>
+
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                <MudStack Spacing="8">
+                    @if (_cartItems != null && _cartItems.Any())
+                    {
+                        @foreach (var item in _cartItems)
+                        {
+                            <ShoppingCartItem CartItem="@item"
+                                              OnRemoved="@OnItemRemovedAsync"
+                                              OnUpdated="@OnItemUpdatedAsync" />
+                        }
+                        <MudDivider />
+                    }
+                    else
+                    {
+                        <MudText>No items in the cart.</MudText>
+                    }
+                </MudStack>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <ShoppingCartSummary Items="_cartItems != null ? new HashSet<CartItemDto>(_cartItems) : new HashSet<CartItemDto>()" />
+            </MudItem>
+        </MudGrid>
+    }
+</AuthorizeView>
+
+@code {
+    public bool isLoadingType = true;
+    private List<CartItemDto>? _cartItems;
+
+    protected override Task OnInitializedAsync() => GetCartItemsAsync();
+
+    private async Task GetCartItemsAsync()
+    {
+        try
+        {
+            _cartItems = await cartService.GetAllItemsAsync(currentUser.Id);
+        }
+        finally
+        {
+            isLoadingType = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnItemRemovedAsync(ProductDetailsDto product)
+    {
+        await cartService.RemoveItemAsync(product.Id);
+        await GetCartItemsAsync();
+    }
+
+    private async Task OnItemUpdatedAsync((int Quantity, ProductDetailsDto Product) tuple)
+    {
+        tuple.Product.Quantity = tuple.Quantity;
+        await cartService.AddItemAsync(tuple.Product, currentUser.Id);
+        await GetCartItemsAsync();
+    }
+
+    private async Task EmptyCartAsync()
+    {
+        await cartService.EmptyCartAsync(currentUser.Id);
+        _cartItems?.Clear();
+    }
+}

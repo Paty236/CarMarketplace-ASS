@@ -1,0 +1,70 @@
+@using CarMarketplace.Application.DTOs
+@using CarMarketplace.Presentation.Services.CartServices
+@using CarMarketplace.Presentation.Services.OrderServices
+
+@inject CurrentUserDto currentUser
+@inject ICartService cartService
+@inject IOrderService orderService
+@inject NavigationManager navigationManager
+
+<MudPaper Outlined="true" Class="flex-grow-1 px-4 pt-2 pb-4">
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+        <MudText Typo="Typo.h6">Cart Summary</MudText>
+        <MudIconButton Icon="@Icons.Filled.AttachMoney" Color="Color.Default" Edge="Edge.End" />
+    </MudStack>
+    <MudStack Spacing="2">
+    @if (Items is null or { Count: 0 })
+    {
+        <MudText Class="py-16" Typo=Typo.h6 Align="Align.Center">Your cart is empty... ☹️</MudText>
+    }
+    else
+    {
+        foreach (var item in Items)
+        {
+            <MudDivider />
+            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                <MudText Typo=Typo.body2>
+                    @(item.Product.Name)
+                </MudText>
+                <MudText Typo=Typo.subtitle2>
+                    @item.TotalPrice.ToString("C2")
+                </MudText>
+            </MudStack>
+        }
+        <MudDivider />
+    }
+    </MudStack>
+    <MudStack Class="mt-4">
+        <MudStack Row="true" Justify="Justify.SpaceBetween">
+            <MudText Typo=Typo.subtitle1><b>Total:</b></MudText>
+            <MudText Typo=Typo.subtitle1><b>@_totalCost</b></MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" 
+            Disabled="@(Items?.Count() == 0 ? true : false)" DisableElevation
+            Size=@Size.Large
+            OnClick="Checkout">
+            Checkout
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+@code {
+    string _totalCost => Items?.Sum(x => x.TotalPrice).ToString("C2") ?? "$0";
+
+    [Parameter, EditorRequired]
+    public HashSet<CartItemDto>? Items { get; set; }
+
+    private async Task Checkout()
+    {
+        await cartService.EmptyCartAsync(currentUser.Id);
+        var orderDto = new OrderDto
+            {
+                BuyerId = currentUser.Id,
+                Status = Domain.Enums.Status.Created,
+                TotalPrice = Items.Sum(x => x.TotalPrice)
+            };
+
+        var result = await orderService.OrderCreate(orderDto);
+        if (result.Success) navigationManager.NavigateTo("/orders");
+    }
+}
